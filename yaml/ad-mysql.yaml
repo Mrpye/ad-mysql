@@ -1,0 +1,96 @@
+#Change ad-mysql to ad-<adapter name>. ie. ad-ucsd
+#Under Deployment->metadata->name change to "action-orchestrator-ad-<adapter name>
+#ie. action-orchestrator-ad-ucsd
+#Under deployment->spec->template->spec->containers->image, change to your image tag/image location
+#Change image pull policy "Always" if you always want to pull
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ad-mysql
+  labels:
+    name: ad-mysql
+spec:
+  type: ClusterIP
+  ports:
+  - name: python-svc-port
+    port: 8082
+    targetPort: ad-mysql
+    protocol: TCP
+  selector:
+    # This needs to match the selector in the Deployment
+    app: ad-mysql
+
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: ad-mysql-tls
+spec:
+  secretName: ad-mysql-tls
+  issuerRef:
+    name: ca-issuer
+    kind: Issuer
+  commonName: ad-mysql
+  dnsNames:
+  - ad-mysql
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: action-orchestrator-ad-mysql
+  labels:
+    app: ad-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ad-mysql
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      name: ad-mysql
+      labels:
+        app: ad-mysql
+    spec:
+      containers:
+      - name: ad-mysql
+        image: containers.metsi.co.uk/apye/ad-mysql:latest
+        ports:
+        - name: ad-mysql
+          containerPort: 8082
+          protocol: TCP
+        imagePullPolicy: Always
+        securityContext:
+          privileged: false
+        volumeMounts:
+            - name: ad-mysql-tls
+              mountPath: /secrets/ssl/cert
+              readOnly: true
+            - name: ca-key-pair
+              mountPath: /secrets/ssl/ca
+              readOnly: true
+      volumes:
+        - name: ad-mysql-tls
+          secret:
+            secretName: ad-mysql-tls
+            items:
+              - key: tls.crt
+                path: certificate.pem
+              - key: tls.key
+                path: private_key.pem
+        - name: ca-key-pair
+          secret:
+            secretName: ca-key-pair
+            items:
+            - key: tls.crt
+              path: ca_certificate.pem
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      schedulerName: default-scheduler
