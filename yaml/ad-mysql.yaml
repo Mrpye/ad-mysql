@@ -60,7 +60,7 @@ spec:
     spec:
       containers:
       - name: ad-mysql
-        image: containers.metsi.co.uk/apye/ad-mysql:latest
+        image: vmware-ic.metsilabs.local/metsilabs/ad-mysql
         ports:
         - name: ad-mysql
           containerPort: 8082
