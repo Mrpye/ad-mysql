@@ -119,6 +119,9 @@ Export environment variables needed to run the adapter:
 
 4. Add the custom adapter project directory to PYTHONPATH using the following command: export PYTHONPATH=PathToCustomPythonAdapterProject
 
+
+export PYTHONPATH=/home/cliqruser/ad-mysql
+
 5. Run adapter:  python worker/activities-worker
 
 (worker/activities-worker is the main entry point to run the adapter)
